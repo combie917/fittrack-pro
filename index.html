@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="description" content="FitTrack Pro - log workouts, earn XP, track your BMI and follow structured routines.">
+    <title>FitTrack Pro</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230072ff'/%3E%3Cpath d='M9 11v10M6 13v6M23 11v10M26 13v6M9 16h14' stroke='white' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --grad-cal: linear-gradient(135deg, #ff4b2b, #ff416c);
+            --grad-min: linear-gradient(135deg, #00c6ff, #0072ff);
+            --grad-step: linear-gradient(135deg, #11998e, #38ef7d);
+            --grad-xp: linear-gradient(135deg, #f5af19, #f12711);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+        body { margin: 0; font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-dark); color: #fff; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; position: relative; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+        img, svg, video { max-width: 100%; }
+        .hidden { display: none !important; }
+
+        /* ---------- Background ---------- */
+        .ambient-orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.3; z-index: -1; pointer-events: none; animation: floatOrb 10s ease-in-out infinite alternate; }
+        .orb-1 { top: -10%; left: -10%; width: min(300px, 60vw); height: min(300px, 60vw); background: #ff416c; }
+        .orb-2 { bottom: 10%; right: -10%; width: min(250px, 55vw); height: min(250px, 55vw); background: #0072ff; animation-delay: -5s; }
+        .orb-3 { top: 40%; left: 50%; width: min(200px, 45vw); height: min(200px, 45vw); background: #38ef7d; opacity: 0.15; animation-delay: -2s; }
+        @keyframes floatOrb { 0% { transform: translate(0, 0); } 100% { transform: translate(30px, 50px); } }
+
+        /* ---------- Layout ---------- */
+        .container { width: 100%; max-width: 520px; margin: 0 auto; padding: 1.25rem; padding-left: max(1.25rem, env(safe-area-inset-left)); padding-right: max(1.25rem, env(safe-area-inset-right)); padding-bottom: calc(6.5rem + var(--safe-bottom)); }
+
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-top: 1px solid rgba(255, 255, 255, 0.2); border-left: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px; padding: clamp(1.1rem, 3vw, 1.5rem); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); min-width: 0; }
+
+        h2 { font-weight: 900; font-size: 1.6rem; margin: 0; }
+        h3 { font-weight: 700; font-size: 1rem; color: #fff; margin: 0 0 1rem 0; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.5rem; }
+        .stat-val { font-weight: 900; font-size: 1.2rem; color: #fff; }
+        .stat-label { font-weight: 300; font-size: 0.85rem; color: var(--text-muted); }
+        label.stat-label { display: block; margin-bottom: 0.3rem; }
+
+        .icon { width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+        .progress-track { background: rgba(0, 0, 0, 0.3); border-radius: 10px; height: 8px; width: 100%; overflow: hidden; margin-top: 0.5rem; }
+        .progress-fill { height: 100%; border-radius: 10px; transition: width 1s ease-out; }
+
+        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
+        .grid-2 > *, .grid-3 > * { min-width: 0; }
+
+        /* ---------- Forms ---------- */
+        .field { margin-bottom: 0.8rem; }
+        input, select { width: 100%; padding: 12px; border-radius: 12px; font-family: inherit; font-size: 16px; outline: none; transition: all 0.3s ease; background: rgba(0, 0, 0, 0.3); color: #fff; border: 1px solid var(--glass-border); min-height: 46px; }
+        input:focus, select:focus { background: rgba(0, 0, 0, 0.5); border-color: rgba(0, 198, 255, 0.6); box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.15); }
+        input::placeholder { color: rgba(255, 255, 255, 0.35); }
+        option { background: var(--bg-dark); color: #fff; }
+
+        .pass-wrap { position: relative; }
+        .pass-wrap input { padding-right: 48px; }
+        .pass-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: grid; place-items: center; border-radius: 10px; }
+        .pass-toggle:hover { color: #fff; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; min-height: 46px; padding: 12px 16px; border-radius: 14px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: #fff; font-family: inherit; font-weight: 700; font-size: 0.9rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; position: relative; overflow: hidden; touch-action: manipulation; transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease, opacity 0.3s; }
+        .btn.primary { background: var(--grad-min); border: none; box-shadow: 0 4px 15px rgba(0, 114, 255, 0.3); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn:active:not(:disabled) { transform: scale(0.98); }
+        @media (hover: hover) { .btn:hover:not(:disabled) { transform: translateY(-2px); } .btn.primary:hover:not(:disabled) { box-shadow: 0 8px 24px rgba(0, 114, 255, 0.45); } }
+        .ripple { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.35); transform: scale(0); animation: ripple 0.6s ease-out; pointer-events: none; }
+        @keyframes ripple { to { transform: scale(2.6); opacity: 0; } }
+
+        .link-btn { background: none; border: none; color: var(--text-muted); font-family: inherit; font-size: 0.85rem; font-weight: 300; text-decoration: underline; cursor: pointer; padding: 0.4rem; touch-action: manipulation; }
+        .link-btn:hover { color: #fff; }
+
+        .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+        .chip { border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.06); color: var(--text-muted); font-family: inherit; font-size: 0.8rem; font-weight: 500; padding: 7px 14px; border-radius: 999px; cursor: pointer; touch-action: manipulation; transition: all 0.25s ease; }
+        .chip:hover { color: #fff; border-color: rgba(255, 255, 255, 0.3); }
+        .chip.active { color: #fff; background: var(--grad-min); border-color: transparent; }
+
+        @keyframes shakeError { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+        .error-shake { animation: shakeError 0.4s ease-in-out; border-color: #ff416c !important; background: rgba(255, 65, 108, 0.15) !important; }
+        @keyframes successPulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); background: var(--grad-step); box-shadow: 0 0 20px rgba(56, 239, 125, 0.6); } 100% { transform: scale(1); background: var(--grad-step); } }
+        .success-anim { animation: successPulse 0.5s ease-out forwards !important; pointer-events: none; }
+
+        /* ---------- Auth ---------- */
+        #auth-section { max-width: 440px; margin: clamp(1rem, 9vh, 5rem) auto 0; animation: fadeUp 0.6s ease-out both; }
+        .logo { width: 52px; height: 52px; border-radius: 16px; background: var(--grad-min); display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0, 114, 255, 0.4); flex-shrink: 0; }
+        .logo .icon { width: 28px; height: 28px; stroke-width: 2.2; }
+        .logo.small { width: 40px; height: 40px; border-radius: 12px; }
+        .logo.small .icon { width: 22px; height: 22px; }
+        .auth-head { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1.25rem; }
+        .grad-text { background: var(--grad-min); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .feature-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+        .feature-pill { font-size: 0.75rem; padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); border: 1px solid var(--glass-border); color: var(--text-muted); }
+        #auth-error { font-size: 0.85rem; text-align: center; font-weight: 500; margin: 12px 0 0; min-height: 20px; color: #ff416c; }
+
+        /* ---------- App header ---------- */
+        .app-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; animation: fadeUp 0.5s ease-out both; }
+        .brand { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+        .brand-name { font-weight: 900; font-size: 1.1rem; line-height: 1.1; }
+        #ui-greeting { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 52vw; }
+        .header-right { display: flex; align-items: center; gap: 0.6rem; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--grad-cal); display: grid; place-items: center; font-weight: 900; box-shadow: 0 4px 14px rgba(255, 65, 108, 0.35); }
+        .icon-btn { display: inline-flex; align-items: center; gap: 0.4rem; height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255, 65, 108, 0.35); background: rgba(255, 65, 108, 0.1); color: #ff416c; font-family: inherit; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; cursor: pointer; touch-action: manipulation; transition: background 0.3s; }
+        .icon-btn:hover { background: rgba(255, 65, 108, 0.2); }
+        .icon-btn .btn-label { display: none; }
+
+        /* ---------- Navigation (bottom bar on phones, top bar on larger screens) ---------- */
+        .nav-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; justify-content: space-around; background: rgba(11, 15, 25, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 0.5rem 0.75rem calc(0.5rem + var(--safe-bottom)); border-top: 1px solid var(--glass-border); border-radius: 20px 20px 0 0; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: none; background: transparent; color: var(--text-muted); font-family: inherit; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; cursor: pointer; border-radius: 14px; transition: color 0.3s, background 0.3s; touch-action: manipulation; }
+        .nav-item .icon { width: 22px; height: 22px; }
+        .nav-item.active { color: #00c6ff; background: rgba(0, 198, 255, 0.1); text-shadow: 0 0 10px rgba(0, 198, 255, 0.5); }
+
+        /* ---------- Views ---------- */
+        .view-section { display: none; gap: 1.1rem; grid-template-columns: minmax(0, 1fr); }
+        .view-section.active { display: grid; }
+        .view-section.active > * { animation: fadeUp 0.5s ease-out both; }
+        .view-section.active > *:nth-child(2) { animation-delay: 0.07s; }
+        .view-section.active > *:nth-child(3) { animation-delay: 0.14s; }
+        .view-section.active > *:nth-child(4) { animation-delay: 0.21s; }
+        .view-section.active > *:nth-child(5) { animation-delay: 0.28s; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+        .stack { display: grid; gap: 1.1rem; align-content: start; min-width: 0; }
+
+        /* Level card */
+        .level-title { font-size: 1.4rem; color: #f5af19; }
+        .rank-badge { display: inline-block; margin-top: 4px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-radius: 999px; background: rgba(245, 175, 25, 0.15); color: #f5af19; border: 1px solid rgba(245, 175, 25, 0.35); }
+
+        /* Stat cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
+        .stat-card { padding: 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
+        .stat-icon { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 0.3rem; }
+        .stat-icon.c1 { background: var(--grad-cal); }
+        .stat-icon.c2 { background: var(--grad-min); }
+        .stat-icon.c3 { background: var(--grad-step); }
+        .stat-icon.c4 { background: var(--grad-xp); }
+        .stat-card .stat-val { font-size: 1.35rem; line-height: 1.1; overflow-wrap: anywhere; }
+        .stat-sub { font-size: 0.72rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* Weekly chart */
+        .week-chart { display: flex; align-items: flex-end; gap: 0.5rem; height: 130px; }
+        .week-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 0.35rem; height: 100%; min-width: 0; }
+        .week-count { font-size: 0.72rem; font-weight: 700; height: 1em; }
+        .week-bar { width: 100%; max-width: 38px; height: 6px; border-radius: 8px 8px 4px 4px; background: rgba(255, 255, 255, 0.12); transition: height 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .week-bar.has { background: var(--grad-step); }
+        .week-col.today .week-bar:not(.has) { background: rgba(0, 198, 255, 0.4); }
+        .week-day { font-size: 0.72rem; color: var(--text-muted); }
+        .week-col.today .week-day { color: #00c6ff; font-weight: 700; }
+
+        /* BMI */
+        .bmi-result-box { text-align: center; padding: 1.5rem 1rem; background: rgba(0, 0, 0, 0.3); border-radius: 12px; margin-top: 1rem; }
+        .bmi-gauge { position: relative; height: 10px; border-radius: 10px; margin: 1.25rem 0 0.4rem; background: linear-gradient(90deg, #00c6ff 0 14%, #38ef7d 14% 40%, #f5af19 40% 60%, #ff416c 60% 100%); }
+        .bmi-marker { position: absolute; top: 50%; left: 0; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid var(--bg-dark); box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(0, 0, 0, 0.5); transform: translate(-50%, -50%); transition: left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .bmi-ticks { display: flex; font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
+        .bmi-ticks span:nth-child(1) { flex-basis: 14%; }
+        .bmi-ticks span:nth-child(2) { flex-basis: 26%; }
+        .bmi-ticks span:nth-child(3) { flex-basis: 20%; }
+        .bmi-ticks span:nth-child(4) { flex-basis: 40%; text-align: right; }
+
+        /* Rest timer */
+        .timer-wrap { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; justify-content: center; }
+        .timer-ring { position: relative; width: 112px; height: 112px; flex-shrink: 0; }
+        .timer-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .timer-ring circle { fill: none; stroke-width: 8; }
+        .timer-ring .track { stroke: rgba(255, 255, 255, 0.1); }
+        .timer-ring .bar { stroke: url(#timerGrad); stroke-linecap: round; transition: stroke-dashoffset 0.3s linear; }
+        #timer-text { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 900; font-size: 1.4rem; }
+        .timer-controls { flex: 1; min-width: 150px; }
+        .timer-controls .chip-row { margin-bottom: 0.6rem; }
+
+        /* Feed */
+        .log-entry { background: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: 12px; margin-bottom: 0.8rem; border-left: 4px solid #00c6ff; animation: fadeUp 0.4s ease-out both; }
+        .log-entry:last-child { margin-bottom: 0; }
+        .log-entry .stat-val { font-size: 1rem; overflow-wrap: anywhere; }
+        .log-meta { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+        .del-btn { width: 32px; height: 32px; display: grid; place-items: center; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); cursor: pointer; touch-action: manipulation; transition: all 0.25s; }
+        .del-btn:hover { color: #ff416c; background: rgba(255, 65, 108, 0.12); }
+        .empty-state { text-align: center; padding: 1.5rem 0.5rem; }
+        .empty-state .big { font-size: 2.2rem; display: block; margin-bottom: 0.4rem; }
+
+        /* Library */
+        .routine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 1rem; }
+        .routine-card { background: rgba(0, 0, 0, 0.25); padding: 1rem; border-radius: 14px; border: 1px solid var(--glass-border); transition: transform 0.3s, border-color 0.3s; animation: fadeUp 0.4s ease-out both; }
+        @media (hover: hover) { .routine-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.25); } }
+        .routine-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .routine-emoji { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.4rem; background: rgba(255, 255, 255, 0.07); flex-shrink: 0; }
+        .tag { background: rgba(255, 255, 255, 0.1); padding: 2px 10px; border-radius: 10px; font-size: 0.72rem; white-space: nowrap; }
+        .routine-card hr { border: 0; border-top: 1px solid var(--glass-border); margin: 10px 0; }
+        .ex-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }
+        .ex-list li { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 300; }
+        .ex-list b { color: #fff; font-weight: 500; }
+        .ex-add { flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.06); color: #00c6ff; cursor: pointer; touch-action: manipulation; transition: all 0.25s; }
+        .ex-add:hover { background: rgba(0, 198, 255, 0.15); }
+
+        /* Toasts */
+        #toast-container { position: fixed; top: max(1rem, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 100; display: grid; gap: 0.5rem; width: min(92vw, 380px); pointer-events: none; }
+        .toast { padding: 12px 16px; border-radius: 14px; background: rgba(20, 26, 40, 0.95); border: 1px solid var(--glass-border); border-left: 4px solid #00c6ff; font-size: 0.88rem; font-weight: 500; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); opacity: 0; transform: translateY(-12px) scale(0.97); transition: all 0.3s ease; }
+        .toast.show { opacity: 1; transform: none; }
+        .toast.success { border-left-color: #38ef7d; }
+        .toast.error { border-left-color: #ff416c; }
+
+        /* ---------- Small phones ---------- */
+        @media (max-width: 360px) {
+            .container { padding-left: 0.9rem; padding-right: 0.9rem; }
+            .grid-3 { grid-template-columns: 1fr 1fr; }
+            .grid-3 > :first-child { grid-column: 1 / -1; }
+            .nav-item { font-size: 0.62rem; }
+            h2 { font-size: 1.4rem; }
+        }
+
+        /* ---------- Tablet ---------- */
+        @media (min-width: 640px) {
+            .stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .icon-btn .btn-label { display: inline; }
+            #ui-greeting { max-width: 360px; }
+        }
+        @media (min-width: 768px) {
+            .container { max-width: 760px; padding-top: 1.75rem; padding-bottom: 3rem; }
+            .nav-bar { position: sticky; top: 0.75rem; bottom: auto; left: auto; right: auto; z-index: 50; justify-content: center; gap: 0.5rem; margin-bottom: 1.25rem; padding: 0.5rem; border: 1px solid var(--glass-border); border-radius: 20px; }
+            .nav-item { flex: 0 1 auto; flex-direction: row; gap: 0.5rem; padding: 10px 22px; font-size: 0.82rem; }
+            .nav-item .icon { width: 18px; height: 18px; }
+        }
+
+        /* ---------- Desktop ---------- */
+        @media (min-width: 1024px) {
+            .container { max-width: 1120px; }
+            #view-dashboard.active { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+            #view-dashboard .level-card, #view-dashboard .stats-grid { grid-column: 1 / -1; }
+            #view-dashboard .week-card { grid-column: span 7; }
+            #view-dashboard .bmi-card { grid-column: span 5; }
+            #view-workouts.active { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; }
+            .week-chart { height: 160px; }
+        }
+
+        /* ---------- Accessibility ---------- */
+        :focus-visible { outline: 2px solid #00c6ff; outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Icon sprite -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+            <symbol id="i-weight" viewBox="0 0 24 24"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></symbol>
+            <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></symbol>
+            <symbol id="i-log" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12h6M9 16h4"/></symbol>
+            <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h6a3 3 0 013 3v13a2 2 0 00-2-2H4z"/><path d="M20 4h-6a3 3 0 00-3 3v13a2 2 0 012-2h7z"/></symbol>
+            <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></symbol>
+            <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+            <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></symbol>
+            <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-3 7-7 0-3-2-5-3-7-1 2-2 3-4 3 0-4-2-6-4-8 0 4-3 6-3 12 0 4 3 7 7 7z"/></symbol>
+            <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+            <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></symbol>
+            <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+            <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+            <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+            <symbol id="i-scale" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 9a4 4 0 018 0"/><path d="M12 9l2-2"/></symbol>
+        </defs>
+    </svg>
+
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+
+    <div id="toast-container" role="status" aria-live="polite"></div>
+
+    <noscript>
+        <p style="padding:2rem;text-align:center;">FitTrack Pro needs JavaScript to run. Please enable it in your browser.</p>
+    </noscript>
+
+    <div class="container">
+
+        <!-- Authentication View -->
+        <section id="auth-section" class="glass-panel" aria-labelledby="auth-title">
+            <div class="auth-head">
+                <span class="logo"><svg class="icon"><use href="#i-weight"/></svg></span>
+                <div>
+                    <h2 id="auth-title" class="grad-text">FitTrack Pro</h2>
+                    <p class="stat-label" style="margin:0;">Secure User Authentication</p>
+                </div>
+            </div>
+
+            <div class="feature-row" aria-hidden="true">
+                <span class="feature-pill">🏋️ Log workouts</span>
+                <span class="feature-pill">⚡ Earn XP</span>
+                <span class="feature-pill">📈 Track BMI</span>
+            </div>
+
+            <form id="auth-form" novalidate>
+                <div class="field">
+                    <label class="stat-label" for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="you@example.com" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required>
+                </div>
+                <div class="field">
+                    <label class="stat-label" for="password">Password</label>
+                    <div class="pass-wrap">
+                        <input type="password" id="password" placeholder="Password" autocomplete="current-password" required>
+                        <button type="button" class="pass-toggle" id="pass-toggle" aria-label="Show password"><svg class="icon"><use href="#i-eye"/></svg></button>
+                    </div>
+                </div>
+
+                <button type="submit" id="auth-btn" class="btn primary">Log In</button>
+
+                <div style="text-align:center; margin-top: 0.75rem;">
+                    <button type="button" id="forgot-btn" class="link-btn">Forgot password?</button>
+                </div>
+                <p style="text-align:center; margin: 0.25rem 0 0;">
+                    <button type="button" id="toggle-auth" class="link-btn">Need an account? Sign Up</button>
+                </p>
+                <p id="auth-error" role="alert"></p>
+            </form>
+        </section>
+
+        <!-- Main App Container -->
+        <div id="app-container" class="hidden">
+
+            <header class="app-header">
+                <div class="brand">
+                    <span class="logo small"><svg class="icon"><use href="#i-weight"/></svg></span>
+                    <div style="min-width:0;">
+                        <div class="brand-name grad-text">FitTrack Pro</div>
+                        <div class="stat-label" id="ui-greeting">Welcome back</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="avatar" id="ui-avatar" aria-hidden="true">A</div>
+                    <button type="button" id="logout-btn" class="icon-btn" aria-label="Log out"><svg class="icon"><use href="#i-logout"/></svg><span class="btn-label">Exit</span></button>
+                </div>
+            </header>
+
+            <nav class="nav-bar" aria-label="Main navigation">
+                <button type="button" class="nav-item active" data-target="view-dashboard" aria-current="page"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></button>
+                <button type="button" class="nav-item" data-target="view-workouts"><svg class="icon"><use href="#i-log"/></svg><span>Log</span></button>
+                <button type="button" class="nav-item" data-target="view-library"><svg class="icon"><use href="#i-book"/></svg><span>Library</span></button>
+            </nav>
+
+            <!-- DASHBOARD -->
+            <main>
+            <div id="view-dashboard" class="view-section active">
+                <div class="glass-panel level-card">
+                    <div class="flex-between">
+                        <div>
+                            <span class="stat-val level-title" id="ui-level">Level 1</span>
+                            <div class="stat-label" style="color:#fff;">Athlete Status</div>
+                            <span class="rank-badge" id="ui-rank">Rookie</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <span class="stat-val" id="ui-total-workouts" style="font-size:1.8rem;">0</span>
+                            <div class="stat-label">Total Workouts</div>
+                        </div>
+                    </div>
+                    <div class="progress-track" style="margin-top:1rem; height:12px;">
+                        <div id="ui-xp-bar" class="progress-fill" style="width:0%; background:var(--grad-xp);"></div>
+                    </div>
+                    <div class="stat-label" style="text-align:center; margin-top:0.5rem;" id="ui-xp-text">0 / 500 XP to Level 2</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="glass-panel stat-card">
+                        <span class="stat-icon c1"><svg class="icon"><use href="#i-flame"/></svg></span>
+                        <span class="stat-val" id="ui-streak">0</span>
+                        <span class="stat-label">Day streak</span>
+                    </div>
+                    <div class="glass-panel stat-card">
+                        <span class="stat-icon c2"><svg class="icon"><use href="#i-cal"/></svg></span>
+                        <span class="stat-val" id="ui-week">0</span>
+                        <span class="stat-label">Last 7 days</span>
+                    </div>
+                    <div class="glass-panel stat-card">
+                        <span class="stat-icon c3"><svg class="icon"><use href="#i-weight"/></svg></span>
+                        <span class="stat-val" id="ui-volume">0 kg</span>
+                        <span class="stat-label">Total volume</span>
+                    </div>
+                    <div class="glass-panel stat-card">
+                        <span class="stat-icon c4"><svg class="icon"><use href="#i-trophy"/></svg></span>
+                        <span class="stat-val" id="ui-best">--</span>
+                        <span class="stat-sub" id="ui-best-name">Best lift</span>
+                    </div>
+                </div>
+
+                <div class="glass-panel week-card">
+                    <h3><svg class="icon"><use href="#i-chart"/></svg> This Week</h3>
+                    <div class="week-chart" id="week-chart" role="img" aria-label="Workouts per day for the last 7 days"></div>
+                </div>
+
+                <div class="glass-panel bmi-card">
+                    <h3><svg class="icon"><use href="#i-scale"/></svg> BMI Tracker</h3>
+                    <div class="grid-2">
+                        <div>
+                            <label class="stat-label" for="bmi-h">Height (cm)</label>
+                            <input type="number" id="bmi-h" placeholder="183" value="183" inputmode="decimal" min="50" max="260">
+                        </div>
+                        <div>
+                            <label class="stat-label" for="bmi-w">Weight (kg)</label>
+                            <input type="number" id="bmi-w" placeholder="70" value="70" inputmode="decimal" min="20" max="400">
+                        </div>
+                    </div>
+                    <div class="bmi-result-box" id="bmi-display">
+                        <div style="font-size:2.5rem; font-weight:900; line-height:1;" id="bmi-num">--</div>
+                        <div style="font-weight:700; text-transform:uppercase; margin-top:0.5rem; letter-spacing:1px;" id="bmi-cat">Awaiting Data</div>
+                        <div class="stat-label" style="margin-top:0.5rem;" id="bmi-advice">Enter your stats above to compute your BMI.</div>
+                        <div class="bmi-gauge" aria-hidden="true"><div class="bmi-marker" id="bmi-marker"></div></div>
+                        <div class="bmi-ticks" aria-hidden="true"><span>Under</span><span>Normal</span><span>Over</span><span>Obese</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORKOUTS -->
+            <div id="view-workouts" class="view-section">
+                <div class="stack">
+                    <div class="glass-panel">
+                        <h3><svg class="icon"><use href="#i-plus"/></svg> Log New Session</h3>
+                        <div class="chip-row" id="quick-chips" aria-label="Quick exercise picks"></div>
+                        <div class="field">
+                            <label class="stat-label" for="log-exercise">Exercise</label>
+                            <input type="text" id="log-exercise" placeholder="Exercise (e.g. Bench Press)" maxlength="60" autocomplete="off" required>
+                        </div>
+                        <div class="grid-3">
+                            <div class="field">
+                                <label class="stat-label" for="log-sets">Sets</label>
+                                <input type="number" id="log-sets" placeholder="4" inputmode="numeric" min="1" max="100" required>
+                            </div>
+                            <div class="field">
+                                <label class="stat-label" for="log-reps">Reps</label>
+                                <input type="number" id="log-reps" placeholder="10" inputmode="numeric" min="1" max="1000" required>
+                            </div>
+                            <div class="field">
+                                <label class="stat-label" for="log-weight">Kg</label>
+                                <input type="number" id="log-weight" placeholder="40" inputmode="decimal" min="0" max="1000" step="0.5" required>
+                            </div>
+                        </div>
+                        <button type="button" id="submit-workout-btn" class="btn primary">Save to Database</button>
+                    </div>
+
+                    <div class="glass-panel">
+                        <h3><svg class="icon"><use href="#i-clock"/></svg> Rest Timer</h3>
+                        <div class="timer-wrap">
+                            <div class="timer-ring">
+                                <svg viewBox="0 0 100 100" aria-hidden="true">
+                                    <defs>
+                                        <linearGradient id="timerGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00c6ff"/><stop offset="100%" stop-color="#0072ff"/></linearGradient>
+                                    </defs>
+                                    <circle class="track" cx="50" cy="50" r="45"/>
+                                    <circle class="bar" id="timer-ring" cx="50" cy="50" r="45"/>
+                                </svg>
+                                <div id="timer-text" aria-live="off">0:00</div>
+                            </div>
+                            <div class="timer-controls">
+                                <div class="chip-row" id="timer-presets">
+                                    <button type="button" class="chip" data-sec="30">30s</button>
+                                    <button type="button" class="chip" data-sec="60">60s</button>
+                                    <button type="button" class="chip" data-sec="90">90s</button>
+                                    <button type="button" class="chip" data-sec="120">2m</button>
+                                </div>
+                                <button type="button" id="timer-reset" class="btn">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel">
+                    <h3><svg class="icon"><use href="#i-cal"/></svg> Recent Activity</h3>
+                    <div id="feed-container"></div>
+                </div>
+            </div>
+
+            <!-- LIBRARY -->
+            <div id="view-library" class="view-section">
+                <div class="glass-panel">
+                    <h3><svg class="icon"><use href="#i-book"/></svg> Structured Routines</h3>
+                    <p class="stat-label" style="margin:0 0 1rem;">Browse categorized workout plans to achieve specific goals. Tap + to send an exercise to your log.</p>
+                    <div class="chip-row" id="library-filters"></div>
+                    <div class="routine-grid" id="routine-grid"></div>
+                </div>
+            </div>
+            </main>
+
+        </div>
+    </div>
+
+    <!-- Firebase (loaded at the bottom so the page renders first) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
+
+    <script>
+    (function () {
+        'use strict';
+
+        const $ = (id) => document.getElementById(id);
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const authError = $('auth-error');
+
+        /* ---------- Crash catcher ---------- */
+        window.onerror = function (msg, url, line) {
+            if (authError && !$('auth-section').classList.contains('hidden')) {
+                authError.style.color = '#ff416c';
+                authError.textContent = 'Crash: ' + msg + ' (Line ' + line + ')';
+            }
+            return false;
+        };
+
+        /* ---------- Small helpers ---------- */
+        function el(tag, cls, text) {
+            const n = document.createElement(tag);
+            if (cls) n.className = cls;
+            if (text !== undefined) n.textContent = text;
+            return n;
+        }
+
+        function toast(msg, type) {
+            const wrap = $('toast-container');
+            const t = el('div', 'toast ' + (type || 'info'), msg);
+            wrap.appendChild(t);
+            requestAnimationFrame(() => t.classList.add('show'));
+            setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 350); }, 3200);
+        }
+
+        function animateValue(node, to, fmt) {
+            fmt = fmt || ((v) => String(Math.round(v)));
+            const from = node._v || 0;
+            node._v = to;
+            if (reduceMotion || from === to) { node.textContent = fmt(to); return; }
+            const start = performance.now(), dur = 700;
+            (function step(now) {
+                const p = Math.min((now - start) / dur, 1);
+                const e = 1 - Math.pow(1 - p, 3);
+                node.textContent = fmt(from + (to - from) * e);
+                if (p < 1) requestAnimationFrame(step);
+            })(start);
+        }
+
+        function dayKey(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+
+        function formatWhen(d) {
+            const now = new Date();
+            const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            if (dayKey(d) === dayKey(now)) return 'Today, ' + time;
+            return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        /* Button ripple */
+        document.addEventListener('click', function (e) {
+            const b = e.target.closest('.btn');
+            if (!b || reduceMotion || b.disabled) return;
+            const r = b.getBoundingClientRect();
+            const size = Math.max(r.width, r.height);
+            const s = el('span', 'ripple');
+            s.style.cssText = 'width:' + size + 'px;height:' + size + 'px;left:' + (e.clientX - r.left - size / 2) + 'px;top:' + (e.clientY - r.top - size / 2) + 'px';
+            b.appendChild(s);
+            setTimeout(() => s.remove(), 600);
+        });
+
+        /* ---------- Network check ---------- */
+        if (typeof firebase === 'undefined') {
+            authError.style.color = '#ff416c';
+            authError.textContent = 'Network Error: Firebase failed to load. Check your internet connection and refresh.';
+            return;
+        }
+
+        /* ---------- Firebase init ---------- */
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpuQBjuS9fKcHsfNxrDm7IjJ5mDAX_nE8",
+            authDomain: "fittrack-pro-6e072.firebaseapp.com",
+            projectId: "fittrack-pro-6e072",
+            storageBucket: "fittrack-pro-6e072.firebasestorage.app",
+            messagingSenderId: "678059630516",
+            appId: "1:678059630516:web:470f3c7e9480cfbd595ce1",
+            measurementId: "G-TDF6S4GS6N"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        /* ---------- UI references ---------- */
+        const authSection = $('auth-section');
+        const appContainer = $('app-container');
+        const authForm = $('auth-form');
+        const authBtn = $('auth-btn');
+        const toggleAuth = $('toggle-auth');
+        const forgotBtn = $('forgot-btn');
+        const authTitle = $('auth-title');
+        const emailInput = $('email');
+        const passInput = $('password');
+
+        let isLogin = true;
+        let isManualLoginEvent = false;
+        let unsubscribeLogs = null;
+        let workouts = [];
+        let prevLevel = null;
+
+        /* ---------- Navigation ---------- */
+        const navItems = Array.from(document.querySelectorAll('.nav-item'));
+        const views = Array.from(document.querySelectorAll('.view-section'));
+
+        function switchView(id) {
+            navItems.forEach((n) => {
+                const on = n.dataset.target === id;
+                n.classList.toggle('active', on);
+                if (on) n.setAttribute('aria-current', 'page'); else n.removeAttribute('aria-current');
+            });
+            views.forEach((v) => v.classList.toggle('active', v.id === id));
+            window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+        }
+        navItems.forEach((item) => item.addEventListener('click', () => switchView(item.dataset.target)));
+
+        /* ---------- Auth helpers ---------- */
+        function resetAuthBtn() {
+            authBtn.disabled = false;
+            authBtn.classList.remove('success-anim');
+            authBtn.textContent = isLogin ? 'Log In' : 'Create Account';
+        }
+
+        function setMode(login) {
+            isLogin = login;
+            authTitle.textContent = login ? 'FitTrack Pro' : 'Register';
+            toggleAuth.textContent = login ? 'Need an account? Sign Up' : 'Already have an account? Log In';
+            forgotBtn.classList.toggle('hidden', !login);
+            passInput.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
+            resetAuthBtn();
+        }
+
+        function friendlyError(err) {
+            const map = {
+                'auth/invalid-credential': 'Incorrect email or password.',
+                'auth/wrong-password': 'Incorrect email or password.',
+                'auth/user-not-found': 'Incorrect email or password.',
+                'auth/invalid-email': 'Please enter a valid email address.',
+                'auth/email-already-in-use': 'That email is already registered. Try logging in.',
+                'auth/weak-password': 'Password must be at least 6 characters.',
+                'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
+                'auth/network-request-failed': 'Network error. Check your connection and try again.'
+            };
+            return map[err.code] || String(err.message || 'Something went wrong.').replace('Firebase: ', '');
+        }
+
+        function triggerError(message) {
+            authError.style.color = '#ff416c';
+            authError.textContent = message;
+            resetAuthBtn();
+            emailInput.classList.remove('error-shake');
+            passInput.classList.remove('error-shake');
+            void emailInput.offsetWidth;
+            emailInput.classList.add('error-shake');
+            passInput.classList.add('error-shake');
+            setTimeout(() => {
+                emailInput.classList.remove('error-shake');
+                passInput.classList.remove('error-shake');
+            }, 400);
+        }
+
+        toggleAuth.addEventListener('click', () => { setMode(!isLogin); authError.textContent = ''; });
+
+        $('pass-toggle').addEventListener('click', function () {
+            const show = passInput.type === 'password';
+            passInput.type = show ? 'text' : 'password';
+            this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        });
+
+        forgotBtn.addEventListener('click', async () => {
+            const e = emailInput.value.trim();
+            if (!e) { triggerError('Enter your email above first, then tap "Forgot password?".'); return; }
+            try {
+                await auth.sendPasswordResetEmail(e);
+                authError.style.color = '#38ef7d';
+                authError.textContent = 'Password reset link sent. Check your inbox.';
+            } catch (err) { triggerError(friendlyError(err)); }
+        });
+
+        /* ---------- Login / Register ---------- */
+        authForm.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const e = emailInput.value.trim();
+            const p = passInput.value;
+            authError.textContent = '';
+
+            if (!e || !p) { triggerError('Please fill in all fields.'); return; }
+            if (!isLogin && p.length < 6) { triggerError('Password must be at least 6 characters.'); return; }
+
+            authBtn.disabled = true;
+            authBtn.textContent = 'Processing...';
+            isManualLoginEvent = isLogin;
+
+            try {
+                if (isLogin) {
+                    const cred = await auth.signInWithEmailAndPassword(e, p);
+                    if (!cred.user.emailVerified) {
+                        isManualLoginEvent = false;
+                        await auth.signOut();
+                        triggerError('Access denied. Verify your email via the link sent to your inbox.');
+                    }
+                } else {
+                    const cred = await auth.createUserWithEmailAndPassword(e, p);
+                    await cred.user.sendEmailVerification();
+                    await auth.signOut();
+                    setMode(true);
+                    authError.style.color = '#38ef7d';
+                    authError.textContent = 'Success! Verification link sent to your email.';
+                    passInput.value = '';
+                }
+            } catch (err) {
+                isManualLoginEvent = false;
+                triggerError(friendlyError(err));
+            }
+        });
+
+        $('logout-btn').addEventListener('click', () => auth.signOut());
+
+        /* ---------- Auth state observer ---------- */
+        function setGreeting(user) {
+            const h = new Date().getHours();
+            const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+            const raw = user.displayName || (user.email || 'athlete').split('@')[0];
+            const name = raw.charAt(0).toUpperCase() + raw.slice(1);
+            $('ui-greeting').textContent = part + ', ' + name;
+            $('ui-avatar').textContent = name.charAt(0).toUpperCase();
+        }
+
+        function showApp(user) {
+            authSection.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            emailInput.value = '';
+            passInput.value = '';
+            setGreeting(user);
+            switchView('view-dashboard');
+            loadDashboardData(user.uid);
+        }
+
+        auth.onAuthStateChanged((user) => {
+            if (user && user.emailVerified) {
+                authError.textContent = '';
+                if (isManualLoginEvent) {
+                    authBtn.classList.add('success-anim');
+                    authBtn.textContent = '✓ Verified';
+                    setTimeout(() => {
+                        showApp(user);
+                        isManualLoginEvent = false;
+                        resetAuthBtn();
+                    }, 800);
+                } else {
+                    showApp(user);
+                }
+            } else {
+                authSection.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                if (unsubscribeLogs) { unsubscribeLogs(); unsubscribeLogs = null; }
+                workouts = [];
+                prevLevel = null;
+                stopTimer();
+                if (!isManualLoginEvent) resetAuthBtn();
+            }
+        });
+
+        /* ---------- Workout logging ---------- */
+        const QUICK_EXERCISES = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Pull-ups', 'Lat Pulldown', 'Bicep Curl'];
+        const quickChips = $('quick-chips');
+        QUICK_EXERCISES.forEach((name) => {
+            const c = el('button', 'chip', name);
+            c.type = 'button';
+            c.addEventListener('click', () => {
+                $('log-exercise').value = name;
+                $('log-sets').focus();
+            });
+            quickChips.appendChild(c);
+        });
+
+        $('submit-workout-btn').addEventListener('click', async function () {
+            const btn = this;
+            const ex = $('log-exercise').value.trim();
+            const sets = Number($('log-sets').value);
+            const reps = Number($('log-reps').value);
+            const weightRaw = $('log-weight').value;
+            const weight = Number(weightRaw);
+            const user = auth.currentUser;
+
+            if (!ex || !$('log-sets').value || !$('log-reps').value || weightRaw === '') { toast('Please fill out all fields.', 'error'); return; }
+            if (!(sets >= 1 && sets <= 100) || !(reps >= 1 && reps <= 1000) || !(weight >= 0 && weight <= 1000)) { toast('Please enter realistic numbers.', 'error'); return; }
+            if (!user) { toast('You are signed out. Please log in again.', 'error'); return; }
+
+            btn.disabled = true;
+            try {
+                await db.collection('workouts').add({
+                    userId: user.uid,
+                    exercise: ex,
+                    sets: Math.round(sets),
+                    reps: Math.round(reps),
+                    weight: weight,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                ['log-exercise', 'log-sets', 'log-reps', 'log-weight'].forEach((id) => { $(id).value = ''; });
+                toast('Workout logged! +50 XP', 'success');
+                if (navigator.vibrate) navigator.vibrate(30);
+            } catch (err) {
+                toast('Database error. Please try again.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        /* ---------- Dashboard & gamification ---------- */
+        const LEVEL_TITLES = ['Rookie', 'Challenger', 'Contender', 'Warrior', 'Elite', 'Champion', 'Legend'];
+
+        function loadDashboardData(userId) {
+            if (unsubscribeLogs) unsubscribeLogs();
+            // Only this user's workouts are requested (sorted locally, so no Firestore composite index is needed).
+            unsubscribeLogs = db.collection('workouts')
+                .where('userId', '==', userId)
+                .onSnapshot((snapshot) => {
+                    workouts = snapshot.docs.map((doc) => {
+                        const d = doc.data({ serverTimestamps: 'estimate' });
+                        return {
+                            id: doc.id,
+                            exercise: String(d.exercise || ''),
+                            sets: Number(d.sets) || 0,
+                            reps: Number(d.reps) || 0,
+                            weight: Number(d.weight) || 0,
+                            date: d.timestamp && d.timestamp.toDate ? d.timestamp.toDate() : new Date()
+                        };
+                    }).sort((a, b) => b.date - a.date);
+                    renderFeed();
+                    renderStats(snapshot.metadata.hasPendingWrites);
+                }, (err) => {
+                    console.error(err);
+                    $('feed-container').replaceChildren(el('p', 'stat-label', 'Could not load workouts. Check your connection and Firestore rules.'));
+                    toast('Could not load workouts.', 'error');
+                });
+        }
+
+        function renderFeed() {
+            const feed = $('feed-container');
+            feed.textContent = '';
+            if (!workouts.length) {
+                const empty = el('div', 'empty-state');
+                empty.appendChild(el('span', 'big', '🏁'));
+                empty.appendChild(el('p', 'stat-label', 'No workouts logged yet. Log your first session to start earning XP!'));
+                feed.appendChild(empty);
+                return;
+            }
+            workouts.slice(0, 40).forEach((w, i) => {
+                const row = el('div', 'log-entry');
+                row.style.animationDelay = Math.min(i, 8) * 40 + 'ms';
+
+                const top = el('div', 'flex-between');
+                top.appendChild(el('span', 'stat-val', w.exercise));
+                const meta = el('div', 'log-meta');
+                meta.appendChild(el('span', 'stat-label', formatWhen(w.date)));
+                const del = el('button', 'del-btn');
+                del.type = 'button';
+                del.dataset.id = w.id;
+                del.setAttribute('aria-label', 'Delete ' + w.exercise + ' entry');
+                del.innerHTML = '<svg class="icon"><use href="#i-trash"/></svg>';
+                meta.appendChild(del);
+                top.appendChild(meta);
+                row.appendChild(top);
+
+                const detail = el('div', 'stat-label');
+                detail.style.marginTop = '4px';
+                const s1 = el('span', '', String(w.sets)); s1.style.color = '#fff';
+                const s2 = el('span', '', String(w.reps)); s2.style.color = '#fff';
+                const s3 = el('span', '', w.weight + 'kg'); s3.style.color = '#00c6ff'; s3.style.fontWeight = '700';
+                detail.append(s1, ' sets × ', s2, ' reps @ ', s3);
+                row.appendChild(detail);
+                feed.appendChild(row);
+            });
+        }
+
+        $('feed-container').addEventListener('click', (e) => {
+            const btn = e.target.closest('.del-btn');
+            if (!btn) return;
+            if (!window.confirm('Delete this workout entry?')) return;
+            db.collection('workouts').doc(btn.dataset.id).delete()
+                .then(() => toast('Entry deleted.', 'success'))
+                .catch(() => toast('Could not delete entry.', 'error'));
+        });
+
+        function renderStats(isOwnWrite) {
+            const total = workouts.length;
+            const totalXP = total * 50;
+            const level = Math.floor(totalXP / 500) + 1;
+            const xpIn = totalXP % 500;
+
+            animateValue($('ui-total-workouts'), total);
+            $('ui-level').textContent = 'Level ' + level;
+            $('ui-rank').textContent = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
+            $('ui-xp-text').textContent = xpIn + ' / 500 XP to Level ' + (level + 1);
+            $('ui-xp-bar').style.width = (xpIn / 500) * 100 + '%';
+
+            if (prevLevel !== null && level > prevLevel && isOwnWrite) toast('🎉 Level up! You reached Level ' + level, 'success');
+            prevLevel = level;
+
+            // Streak
+            const days = new Set(workouts.map((w) => dayKey(w.date)));
+            let streak = 0;
+            const cur = new Date(); cur.setHours(12, 0, 0, 0);
+            if (!days.has(dayKey(cur))) cur.setDate(cur.getDate() - 1);
+            while (days.has(dayKey(cur))) { streak++; cur.setDate(cur.getDate() - 1); }
+            animateValue($('ui-streak'), streak);
+
+            // Volume + best lift
+            let volume = 0, best = null;
+            workouts.forEach((w) => {
+                volume += w.sets * w.reps * w.weight;
+                if (!best || w.weight > best.weight) best = w;
+            });
+            animateValue($('ui-volume'), volume, (v) => Math.round(v).toLocaleString() + ' kg');
+            $('ui-best').textContent = best && best.weight > 0 ? best.weight + ' kg' : '--';
+            $('ui-best-name').textContent = best && best.weight > 0 ? best.exercise : 'Best lift';
+
+            // Weekly chart
+            const chart = $('week-chart');
+            chart.textContent = '';
+            const counts = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i);
+                const k = dayKey(d);
+                counts.push({ label: d.toLocaleDateString([], { weekday: 'narrow' }), n: workouts.filter((w) => dayKey(w.date) === k).length, today: i === 0 });
+            }
+            const weekTotal = counts.reduce((a, c) => a + c.n, 0);
+            animateValue($('ui-week'), weekTotal);
+            const max = Math.max(1, ...counts.map((c) => c.n));
+            counts.forEach((c) => {
+                const col = el('div', 'week-col' + (c.today ? ' today' : ''));
+                col.appendChild(el('span', 'week-count', c.n ? String(c.n) : ''));
+                const bar = el('div', 'week-bar' + (c.n ? ' has' : ''));
+                col.appendChild(bar);
+                col.appendChild(el('span', 'week-day', c.label));
+                chart.appendChild(col);
+                requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = Math.max(6, (c.n / max) * 90) + 'px'; }));
+            });
+        }
+
+        /* ---------- BMI ---------- */
+        function computeBMI() {
+            const hCm = parseFloat($('bmi-h').value);
+            const w = parseFloat($('bmi-w').value);
+            const h = hCm / 100;
+            const numEl = $('bmi-num'), catEl = $('bmi-cat'), advEl = $('bmi-advice'), marker = $('bmi-marker');
+
+            if (hCm >= 50 && hCm <= 260 && w >= 20 && w <= 400) {
+                const bmi = w / (h * h);
+                numEl.textContent = bmi.toFixed(1);
+                let color, cat, adv;
+                if (bmi < 18.5) { color = '#00c6ff'; cat = 'Underweight'; adv = 'Focus on a caloric surplus and hypertrophy training.'; }
+                else if (bmi < 25) { color = '#38ef7d'; cat = 'Normal Weight'; adv = 'Maintain your current routine and balanced diet.'; }
+                else if (bmi < 30) { color = '#f5af19'; cat = 'Overweight'; adv = 'Incorporate more cardio and monitor caloric intake.'; }
+                else { color = '#ff416c'; cat = 'Obese'; adv = 'Consult a physician and prioritize steady-state cardio.'; }
+                numEl.style.color = color; catEl.style.color = color;
+                catEl.textContent = cat; advEl.textContent = adv;
+                const pct = Math.min(100, Math.max(0, ((bmi - 15) / 25) * 100));
+                marker.style.left = pct + '%';
+                marker.style.opacity = '1';
+            } else {
+                numEl.textContent = '--'; catEl.textContent = 'Invalid Input';
+                catEl.style.color = '#fff'; numEl.style.color = '#fff';
+                advEl.textContent = 'Please enter valid numbers.';
+                marker.style.opacity = '0';
+            }
+        }
+        $('bmi-h').addEventListener('input', computeBMI);
+        $('bmi-w').addEventListener('input', computeBMI);
+        computeBMI();
+
+        /* ---------- Rest timer ---------- */
+        const ring = $('timer-ring');
+        const RING = 2 * Math.PI * 45;
+        ring.style.strokeDasharray = String(RING);
+        let tEnd = 0, tTotal = 0, tId = null;
+
+        function paintTimer(rem) {
+            const m = Math.floor(rem / 60);
+            $('timer-text').textContent = m + ':' + String(rem % 60).padStart(2, '0');
+            ring.style.strokeDashoffset = String(tTotal ? RING * (1 - rem / tTotal) : RING);
+        }
+        function markPreset(sec) {
+            document.querySelectorAll('#timer-presets .chip').forEach((c) => c.classList.toggle('active', Number(c.dataset.sec) === sec));
+        }
+        function stopTimer() {
+            clearInterval(tId); tId = null; tEnd = 0; tTotal = 0;
+            markPreset(0);
+            paintTimer(0);
+        }
+        function startTimer(sec) {
+            clearInterval(tId);
+            tTotal = sec;
+            tEnd = Date.now() + sec * 1000;
+            markPreset(sec);
+            paintTimer(sec);
+            tId = setInterval(() => {
+                const rem = Math.max(0, Math.ceil((tEnd - Date.now()) / 1000));
+                paintTimer(rem);
+                if (rem <= 0) {
+                    toast('Rest over. Time for your next set! 💪', 'success');
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    stopTimer();
+                }
+            }, 250);
+        }
+        document.querySelectorAll('#timer-presets .chip').forEach((c) => c.addEventListener('click', () => startTimer(Number(c.dataset.sec))));
+        $('timer-reset').addEventListener('click', stopTimer);
+        paintTimer(0);
+
+        /* ---------- Library ---------- */
+        const ROUTINES = [
+            { name: 'Push Day Maximizer', tag: 'Hypertrophy', target: 'Chest, Shoulders, Triceps', color: '#ff416c', icon: '💪', ex: [['Incline DB Press', 4, '8-12 reps'], ['Lateral Raises', 4, '15 reps'], ['Tricep Extensions', 3, '12 reps']] },
+            { name: 'Pull Day Power', tag: 'Hypertrophy', target: 'Back, Biceps, Rear Delts', color: '#f5af19', icon: '🧗', ex: [['Lat Pulldown', 4, '10 reps'], ['Seated Cable Row', 4, '10 reps'], ['Face Pulls', 3, '15 reps'], ['Hammer Curls', 3, '12 reps']] },
+            { name: 'Dumbbell Foundation', tag: 'Strength', target: 'Full Body Core', color: '#00c6ff', icon: '🏋️', ex: [['Goblet Squats', 4, '10 reps'], ['DB Romanian Deadlifts', 4, '10 reps'], ['Planks', 3, '60 sec']] },
+            { name: 'Leg Day Builder', tag: 'Strength', target: 'Quads, Hamstrings, Glutes', color: '#38ef7d', icon: '🦵', ex: [['Back Squat', 4, '6-8 reps'], ['Leg Press', 3, '12 reps'], ['Walking Lunges', 3, '12 reps'], ['Calf Raises', 4, '15 reps']] },
+            { name: 'HIIT Burner', tag: 'Endurance', target: 'Full Body Conditioning', color: '#ff4b2b', icon: '🔥', ex: [['Jump Rope', 5, '60 sec'], ['Burpees', 4, '12 reps'], ['Mountain Climbers', 4, '40 sec'], ['Kettlebell Swings', 4, '15 reps']] },
+            { name: 'Core Stability', tag: 'Endurance', target: 'Abs, Obliques, Lower Back', color: '#0072ff', icon: '🧘', ex: [['Planks', 3, '60 sec'], ['Hanging Knee Raises', 3, '12 reps'], ['Russian Twists', 3, '20 reps'], ['Dead Bug', 3, '10 reps']] }
+        ];
+        const FILTERS = ['All', 'Hypertrophy', 'Strength', 'Endurance'];
+        let activeFilter = 'All';
+        const filterRow = $('library-filters');
+        const grid = $('routine-grid');
+
+        function renderLibrary() {
+            filterRow.textContent = '';
+            FILTERS.forEach((f) => {
+                const c = el('button', 'chip' + (f === activeFilter ? ' active' : ''), f);
+                c.type = 'button';
+                c.addEventListener('click', () => { activeFilter = f; renderLibrary(); });
+                filterRow.appendChild(c);
+            });
+
+            grid.textContent = '';
+            ROUTINES.filter((r) => activeFilter === 'All' || r.tag === activeFilter).forEach((r, i) => {
+                const card = el('div', 'routine-card');
+                card.style.animationDelay = i * 60 + 'ms';
+
+                const top = el('div', 'routine-top');
+                const emoji = el('span', 'routine-emoji', r.icon);
+                const info = el('div', '');
+                info.style.minWidth = '0';
+                info.style.flex = '1';
+                const name = el('div', 'stat-val', r.name);
+                name.style.color = r.color;
+                name.style.fontSize = '1.05rem';
+                info.appendChild(name);
+                info.appendChild(el('div', 'stat-label', 'Target: ' + r.target));
+                top.append(emoji, info, el('span', 'tag stat-label', r.tag));
+                card.appendChild(top);
+                card.appendChild(document.createElement('hr'));
+
+                const ul = el('ul', 'ex-list');
+                r.ex.forEach((x) => {
+                    const li = document.createElement('li');
+                    const txt = el('span', '');
+                    txt.appendChild(el('b', '', x[0] + ': '));
+                    txt.append(x[1] + ' sets × ' + x[2]);
+                    const add = el('button', 'ex-add');
+                    add.type = 'button';
+                    add.dataset.name = x[0];
+                    add.dataset.sets = String(x[1]);
+                    add.dataset.reps = /reps$/.test(x[2]) ? String(parseInt(x[2], 10)) : '';
+                    add.setAttribute('aria-label', 'Log ' + x[0]);
+                    add.innerHTML = '<svg class="icon" style="width:16px;height:16px"><use href="#i-plus"/></svg>';
+                    li.append(txt, add);
+                    ul.appendChild(li);
+                });
+                card.appendChild(ul);
+                grid.appendChild(card);
+            });
+        }
+
+        grid.addEventListener('click', (e) => {
+            const b = e.target.closest('.ex-add');
+            if (!b) return;
+            $('log-exercise').value = b.dataset.name;
+            $('log-sets').value = b.dataset.sets;
+            $('log-reps').value = b.dataset.reps;
+            switchView('view-workouts');
+            setTimeout(() => $('log-weight').focus({ preventScroll: true }), 50);
+            toast(b.dataset.name + ' added to your log form.');
+        });
+
+        renderLibrary();
+    })();
+    </script>
+</body>
+</html>
